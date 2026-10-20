@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dinar Euro</title>
+<meta name="theme-color" content="#006233">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dinar Euro">
+<style>
+/* Mise en page : bandeau vert/blanc au drapeau, carte de calcul centrale, gros chiffres lisibles au soleil */
+:root{
+  --vert:#006233; --vert-fonce:#00461f; --rouge:#d21034;
+  --bg:#f3f6f4; --carte:#ffffff; --fg:#14211a; --doux:#5b6b62; --ligne:#d9e3dd;
+  --champ:#f7faf8;
+  --titre:"Avenir Next","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --chiffres:"SF Pro Rounded","Avenir Next",Roboto,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1511; --carte:#16211b; --fg:#eef4f0; --doux:#9db0a5; --ligne:#2a3a31; --champ:#1d2a23;
+  --vert:#1a8a52; --rouge:#ff4d6a; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.4 var(--titre);
+  padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
+.drapeau{display:flex;align-items:center;gap:14px;
+  background:#006233;box-shadow:inset 0 -5px 0 #d21034,inset 0 -9px 0 #fff;
+  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px))}
+.drapeau h1{margin:0;font-size:1.25rem;color:#fff;letter-spacing:.02em;flex:1}
+.drapeau h1 small{display:block;font-size:.72rem;font-weight:500;opacity:.85;letter-spacing:.08em;text-transform:uppercase}
+.drapeau svg{flex:none}
+main{max-width:480px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px));display:grid;gap:16px}
+.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:16px;padding:16px;display:grid;gap:14px}
+label,.etiq{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--doux)}
+.taux{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.taux > div{display:grid;gap:6px;min-width:0}
+input{width:100%;font:600 1.3rem var(--chiffres);color:var(--fg);background:var(--champ);
+  border:2px solid var(--ligne);border-radius:12px;padding:10px 12px;font-variant-numeric:tabular-nums}
+input:focus{outline:none;border-color:var(--vert)}
+#taux{border-color:var(--vert)}
+.sens{display:flex;align-items:center;gap:10px}
+.sens .devise{flex:1;font-weight:700;font-size:1.05rem}
+.sens .devise:last-of-type{text-align:right}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+button:focus-visible{outline:3px solid var(--rouge);outline-offset:2px}
+#inverser{background:var(--rouge);color:#fff;width:48px;height:48px;font-size:1.4rem;flex:none}
+.unite{display:flex;background:var(--champ);border:1px solid var(--ligne);border-radius:12px;padding:3px}
+.unite button{flex:1;background:none;color:var(--doux);padding:8px;font-weight:600;font-size:.9rem}
+.unite button[aria-pressed="true"]{background:var(--vert);color:#fff}
+#montant{font-size:2rem;padding:14px}
+.rapides{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rapides button{background:var(--champ);border:1px solid var(--ligne);color:var(--fg);padding:10px 0;font-weight:600;font-size:.85rem;font-variant-numeric:tabular-nums}
+#convertir{background:var(--vert);color:#fff;font-weight:700;font-size:1.1rem;padding:15px}
+.resultat{border-radius:16px;background:var(--vert);color:#fff;padding:18px 16px;display:grid;gap:4px;position:relative;overflow:hidden}
+.resultat::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;border:14px solid rgba(255,255,255,.12)}
+.resultat .etiq{color:rgba(255,255,255,.8)}
+#res{font:800 clamp(2.2rem,11vw,3.2rem)/1.05 var(--chiffres);font-variant-numeric:tabular-nums;word-break:break-all}
+#detail{font-size:.9rem;opacity:.9}
+#officiel{font-size:.9rem;background:rgba(0,0,0,.18);border-radius:10px;padding:8px 10px;margin-top:8px}
+#officiel[hidden]{display:none}
+#ajouter{background:#fff;color:var(--vert-fonce);font-weight:700;padding:11px;margin-top:8px}
+.sejour h2{margin:0;font-size:1rem;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+#total{font:800 1.4rem var(--chiffres);color:var(--rouge);font-variant-numeric:tabular-nums}
+ul{list-style:none;margin:0;padding:0;display:grid}
+li{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--ligne);font-variant-numeric:tabular-nums}
+li .nom{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--doux);font-size:.9rem}
+li b{font-family:var(--chiffres)}
+li button{background:none;color:var(--doux);font-size:1.1rem;padding:4px 6px}
+.vide{color:var(--doux);font-size:.9rem;margin:0}
+#vider{background:none;color:var(--rouge);font-weight:600;padding:6px 0;justify-self:start}
+.note{font-size:.78rem;color:var(--doux);text-align:center;margin:0}
+@media (prefers-reduced-motion:no-preference){#res{transition:transform .15s}#res.pop{transform:scale(1.04)}}
+</style>
+</head>
+<body>
+<header class="drapeau">
+  <svg viewBox="0 0 60 40" aria-hidden="true" style="width:60px;height:40px;border-radius:6px;box-shadow:0 0 0 2px rgba(255,255,255,.7)">
+    <rect width="30" height="40" fill="#006233"/><rect x="30" width="30" height="40" fill="#fff"/>
+    <mask id="cr"><rect width="60" height="40" fill="#fff"/><circle cx="32.5" cy="20" r="8" fill="#000"/></mask>
+    <circle cx="30" cy="20" r="10" fill="#d21034" mask="url(#cr)"/>
+    <polygon points="31.00,20.00 35.06,18.59 35.15,14.29 37.74,17.72 41.85,16.47 39.40,20.00 41.85,23.53 37.74,22.28 35.15,25.71 35.06,21.41" fill="#d21034"/>
+  </svg>
+  <h1><small>Taux du change</small>Dinar ↔ Euro</h1>
+</header>
+
+<main>
+  <section class="carte" aria-label="Taux">
+    <div class="taux">
+      <div><label for="taux">Mon taux (DA / 1 €)</label><input id="taux" inputmode="decimal" autocomplete="off"></div>
+      <div><label for="tauxOff">Taux officiel</label><input id="tauxOff" inputmode="decimal" autocomplete="off" placeholder="facultatif"></div>
+    </div>
+  </section>
+
+  <section class="carte" aria-label="Montant">
+    <div class="sens">
+      <span class="devise" id="de">Dinars (DA)</span>
+      <button id="inverser" aria-label="Inverser le sens">⇄</button>
+      <span class="devise" id="vers">Euros (€)</span>
+    </div>
+    <div class="unite" id="unite" role="group" aria-label="Unité de saisie">
+      <button id="uDa" aria-pressed="true">Dinars</button>
+      <button id="uCt" aria-pressed="false">Centimes</button>
+    </div>
+    <div style="display:grid;gap:6px">
+      <label for="montant" id="lblMontant">Montant en dinars</label>
+      <input id="montant" inputmode="decimal" autocomplete="off" placeholder="0">
+    </div>
+    <div class="rapides" id="rapides"></div>
+    <button id="convertir">Convertir</button>
+  </section>
+
+  <section class="resultat" aria-live="polite">
+    <span class="etiq" id="resEtiq">Prix en euros</span>
+    <div id="res">0,00 €</div>
+    <div id="detail">Saisissez un montant</div>
+    <div id="officiel" hidden></div>
+    <button id="ajouter">+ Ajouter aux dépenses du séjour</button>
+  </section>
+
+  <section class="carte sejour">
+    <h2>Dépenses du séjour <span id="total">0,00 €</span></h2>
+    <div class="taux">
+      <div style="grid-column:1/-1"><label for="libelle">Libellé (facultatif)</label><input id="libelle" style="font-size:1rem;font-weight:500" placeholder="ex. taxi, marché, restaurant" autocomplete="off"></div>
+    </div>
+    <ul id="liste"></ul>
+    <p class="vide" id="vide">Aucune dépense enregistrée.</p>
+    <button id="vider" hidden>Vider la liste</button>
+  </section>
+
+  <p class="note">Fonctionne sans connexion. Données gardées sur ce téléphone uniquement.</p>
+</main>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var store={get:function(k,d){try{var v=localStorage.getItem('dz.'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+             set:function(k,v){try{localStorage.setItem('dz.'+k,JSON.stringify(v))}catch(e){}}};
+  var st={taux:store.get('taux',274),off:store.get('off',''),sens:store.get('sens','dz'),unite:store.get('unite','da'),dep:store.get('dep',[])};
+  var dernier=null;
+
+  function num(s){if(typeof s==='number')return s;s=String(s).replace(/\s/g,'').replace(',','.');var n=parseFloat(s);return isFinite(n)?n:NaN}
+  function f(n,d){return n.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+  function eur(n){return f(n,2)+' €'}
+  function da(n){return f(Math.round(n),0)+' DA'}
+  function centimes(daVal){var c=daVal*100;return c>=1e6?f(c/1e6,c%1e6?2:0).replace(/,00$/,'')+' million'+(c>=2e6?'s':'')+' de centimes':f(c,0)+' centimes'}
+
+  $('taux').value=String(st.taux).replace('.',',');
+  $('tauxOff').value=st.off===''?'':String(st.off).replace('.',',');
+
+  function rendreSens(){
+    var dz=st.sens==='dz';
+    $('de').textContent=dz?'Dinars (DA)':'Euros (€)';
+    $('vers').textContent=dz?'Euros (€)':'Dinars (DA)';
+    $('unite').hidden=!dz;
+    $('uDa').setAttribute('aria-pressed',st.unite==='da');
+    $('uCt').setAttribute('aria-pressed',st.unite==='ct');
+    $('lblMontant').textContent=!dz?'Montant en euros':(st.unite==='ct'?'Montant en centimes':'Montant en dinars');
+    $('resEtiq').textContent=dz?'Prix en euros':'Montant en dinars';
+    var vals=!dz?[10,20,50,100,200]:(st.unite==='ct'?[50000,100000,500000,1000000,2000000]:[500,1000,2000,5000,10000]);
+    var r=$('rapides');r.innerHTML='';
+    vals.forEach(function(v){var b=document.createElement('button');
+      b.textContent=v>=1e6?(v/1e6)+' M':v>=1000?(v/1000)+' k':v;
+      b.setAttribute('aria-label',f(v,0));
+      b.onclick=function(){$('montant').value=v;calculer(true)};r.appendChild(b)});
+  }
+
+  function calculer(anim){
+    var t=num($('taux').value), off=num($('tauxOff').value), m=num($('montant').value);
+    if(isFinite(t)&&t>0){st.taux=t;store.set('taux',t)}
+    st.off=isFinite(off)&&off>0?off:'';store.set('off',st.off);
+    var o=$('officiel');o.hidden=true;
+    if(!(t>0)){$('res').textContent='—';$('detail').textContent='Indiquez votre taux';dernier=null;return}
+    if(!(m>0)){$('res').textContent=st.sens==='dz'?'0,00 €':'0 DA';$('detail').textContent='Saisissez un montant';dernier=null;return}
+    var vDa,vEu;
+    if(st.sens==='dz'){vDa=st.unite==='ct'?m/100:m;vEu=vDa/t;
+      $('res').textContent=eur(vEu);
+      $('detail').textContent=da(vDa)+(st.unite==='ct'?' ('+centimes(vDa)+')':'')+' à '+f(t,2).replace(/,00$/,'')+' DA/€';
+    }else{vEu=m;vDa=m*t;
+      $('res').textContent=da(vDa);
+      $('detail').textContent=eur(vEu)+' = '+centimes(vDa);
+    }
+    if(st.off){var eOff=vDa/st.off,gain=(1-st.off/t)*100;
+      o.textContent=st.sens==='dz'
+        ?'Au taux officiel : '+eur(eOff)+' (vous économisez '+eur(eOff-vEu)+', soit −'+f(gain,0)+' %)'
+        :'Au taux officiel, '+eur(vEu)+' ne donnerait que '+da(vEu*st.off);
+      o.hidden=false}
+    dernier={da:vDa,eu:vEu};
+    if(anim){var r=$('res');r.classList.add('pop');setTimeout(function(){r.classList.remove('pop')},150)}
+  }
+
+  function rendreDep(){
+    var ul=$('liste');ul.innerHTML='';var tot=0,totDa=0;
+    st.dep.slice().reverse().forEach(function(d,i){
+      tot+=d.eu;totDa+=d.da;var idx=st.dep.length-1-i;
+      var li=document.createElement('li');
+      var n=document.createElement('span');n.className='nom';n.textContent=(d.l||'Dépense')+' · '+da(d.da);
+      var b=document.createElement('b');b.textContent=eur(d.eu);
+      var x=document.createElement('button');x.textContent='✕';x.setAttribute('aria-label','Supprimer');
+      x.onclick=function(){st.dep.splice(idx,1);store.set('dep',st.dep);rendreDep()};
+      li.append(n,b,x);ul.appendChild(li)});
+    $('total').textContent=eur(tot);
+    $('total').title=da(totDa);
+    $('vide').hidden=st.dep.length>0;$('vider').hidden=st.dep.length===0;
+    $('vider').textContent='Vider la liste';$('vider').dataset.arm='';
+  }
+
+  ['taux','tauxOff','montant'].forEach(function(id){$(id).addEventListener('input',function(){calculer(false)})});
+  $('montant').addEventListener('keydown',function(e){if(e.key==='Enter'){calculer(true);this.blur()}});
+  $('convertir').onclick=function(){calculer(true);$('montant').blur()};
+  $('inverser').onclick=function(){
+    var prev=dernier;st.sens=st.sens==='dz'?'eu':'dz';store.set('sens',st.sens);rendreSens();
+    if(prev){$('montant').value=st.sens==='eu'?f(prev.eu,2):(st.unite==='ct'?Math.round(prev.da*100):Math.round(prev.da))}
+    calculer(true)};
+  $('uDa').onclick=function(){setUnite('da')};$('uCt').onclick=function(){setUnite('ct')};
+  function setUnite(u){if(st.unite===u)return;var m=num($('montant').value);
+    if(m>0)$('montant').value=u==='ct'?Math.round(m*100):Math.round(m/100);
+    st.unite=u;store.set('unite',u);rendreSens();calculer(false)}
+  $('ajouter').onclick=function(){if(!dernier)return;
+    st.dep.push({da:dernier.da,eu:dernier.eu,l:$('libelle').value.trim(),t:Date.now()});
+    store.set('dep',st.dep);$('libelle').value='';rendreDep();
+    var b=this;b.textContent='✓ Ajouté';setTimeout(function(){b.textContent='+ Ajouter aux dépenses du séjour'},1200)};
+  $('vider').onclick=function(){var b=this;
+    if(b.dataset.arm){st.dep=[];store.set('dep',st.dep);rendreDep();return}
+    b.dataset.arm='1';b.textContent='Toucher à nouveau pour confirmer';
+    setTimeout(function(){if(b.dataset.arm){b.dataset.arm='';b.textContent='Vider la liste'}},3000)};
+
+  rendreSens();
+  if(!$('montant').value)$('montant').value=st.sens==='dz'?(st.unite==='ct'?100000:1000):10;
+  calculer(false);rendreDep();
+
+  if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(function(){})}
+})();
+</script>
+</body>
+</html>
