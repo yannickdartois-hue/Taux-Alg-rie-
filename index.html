@@ -62,6 +62,17 @@ button:focus-visible{outline:3px solid var(--rouge);outline-offset:2px}
 #officiel{font-size:.9rem;background:rgba(0,0,0,.18);border-radius:10px;padding:8px 10px;margin-top:8px}
 #officiel[hidden]{display:none}
 #ajouter{background:#fff;color:var(--vert-fonce);font-weight:700;padding:11px;margin-top:8px}
+li.jour{grid-template-columns:1fr auto;border-top:2px solid var(--vert);padding-top:12px;margin-top:6px}
+li.jour:first-child{margin-top:0}
+li.jour span{font-weight:700}
+li.jour span::first-letter{text-transform:uppercase}
+input[type=date]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:46px}
+li.jour b{color:var(--vert);text-align:right;font-size:.95rem}
+li.jour small{display:block;color:var(--doux);font-weight:500;font-family:var(--titre);font-size:.75rem}
+.outils{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+#exporter{background:var(--vert);color:#fff;font-weight:600;padding:9px 14px}
+#exportTxt{width:100%;min-height:140px;font:13px/1.4 ui-monospace,Menlo,monospace;background:var(--champ);color:var(--fg);border:1px solid var(--ligne);border-radius:10px;padding:10px}
+#totalDa{color:var(--doux);font-size:.85rem;margin:-8px 0 0;text-align:right;font-variant-numeric:tabular-nums}
 .sejour h2{margin:0;font-size:1rem;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 #total{font:800 1.4rem var(--chiffres);color:var(--rouge);font-variant-numeric:tabular-nums}
 ul{list-style:none;margin:0;padding:0;display:grid}
@@ -122,12 +133,15 @@ li button{background:none;color:var(--doux);font-size:1.1rem;padding:4px 6px}
 
   <section class="carte sejour">
     <h2>Dépenses du séjour <span id="total">0,00 €</span></h2>
+    <p id="totalDa"></p>
     <div class="taux">
-      <div style="grid-column:1/-1"><label for="libelle">Libellé (facultatif)</label><input id="libelle" style="font-size:1rem;font-weight:500" placeholder="ex. taxi, marché, restaurant" autocomplete="off"></div>
+      <div><label for="libelle">Libellé</label><input id="libelle" style="font-size:1rem;font-weight:500" placeholder="taxi, marché…" autocomplete="off"></div>
+      <div><label for="jourDep">Date</label><input id="jourDep" type="date" style="font-size:1rem;font-weight:500"></div>
     </div>
     <ul id="liste"></ul>
     <p class="vide" id="vide">Aucune dépense enregistrée.</p>
-    <button id="vider" hidden>Vider la liste</button>
+    <div class="outils"><button id="exporter" hidden>Exporter</button><button id="vider" hidden>Vider la liste</button></div>
+    <textarea id="exportTxt" readonly hidden aria-label="Texte exporté"></textarea>
   </section>
 
   <p class="note">Fonctionne sans connexion. Données gardées sur ce téléphone uniquement.</p>
@@ -147,6 +161,12 @@ li button{background:none;color:var(--doux);font-size:1.1rem;padding:4px 6px}
   function da(n){return f(Math.round(n),0)+' DA'}
   function centimes(daVal){var c=daVal*100;return c>=1e6?f(c/1e6,c%1e6?2:0).replace(/,00$/,'')+' million'+(c>=2e6?'s':'')+' de centimes':f(c,0)+' centimes'}
 
+  function cleJour(d){d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function nomJour(k){var p=k.split('-');return new Date(+p[0],p[1]-1,+p[2]).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}
+  function jourDe(d){return d.j||cleJour(d.t)}
+  function parJour(){var g={};st.dep.forEach(function(d,i){var k=jourDe(d);(g[k]=g[k]||[]).push({d:d,i:i})});
+    return Object.keys(g).sort().reverse().map(function(k){return {k:k,items:g[k].sort(function(a,b){return (b.d.t-a.d.t)||(b.i-a.i)})}})}
+  $('jourDep').value=cleJour(Date.now());
   $('taux').value=String(st.taux).replace('.',',');
   $('tauxOff').value=st.off===''?'':String(st.off).replace('.',',');
 
@@ -193,20 +213,34 @@ li button{background:none;color:var(--doux);font-size:1.1rem;padding:4px 6px}
 
   function rendreDep(){
     var ul=$('liste');ul.innerHTML='';var tot=0,totDa=0;
-    st.dep.slice().reverse().forEach(function(d,i){
-      tot+=d.eu;totDa+=d.da;var idx=st.dep.length-1-i;
-      var li=document.createElement('li');
-      var n=document.createElement('span');n.className='nom';n.textContent=(d.l||'Dépense')+' · '+da(d.da);
-      var b=document.createElement('b');b.textContent=eur(d.eu);
-      var x=document.createElement('button');x.textContent='✕';x.setAttribute('aria-label','Supprimer');
-      x.onclick=function(){st.dep.splice(idx,1);store.set('dep',st.dep);rendreDep()};
-      li.append(n,b,x);ul.appendChild(li)});
+    parJour().forEach(function(g){
+      var sEu=0,sDa=0;g.items.forEach(function(x){sEu+=x.d.eu;sDa+=x.d.da});tot+=sEu;totDa+=sDa;
+      var h=document.createElement('li');h.className='jour';
+      var n=document.createElement('span');n.textContent=nomJour(g.k);
+      var b=document.createElement('b');b.textContent=eur(sEu);var sm=document.createElement('small');sm.textContent=da(sDa);b.appendChild(sm);
+      h.append(n,b);ul.appendChild(h);
+      g.items.forEach(function(x){var d=x.d;
+        var li=document.createElement('li');
+        var nm=document.createElement('span');nm.className='nom';nm.textContent=(d.l||'Dépense')+' · '+da(d.da);
+        var v=document.createElement('b');v.textContent=eur(d.eu);
+        var del=document.createElement('button');del.textContent='✕';del.setAttribute('aria-label','Supprimer');
+        del.onclick=function(){st.dep.splice(x.i,1);store.set('dep',st.dep);rendreDep()};
+        li.append(nm,v,del);ul.appendChild(li)})});
     $('total').textContent=eur(tot);
-    $('total').title=da(totDa);
-    $('vide').hidden=st.dep.length>0;$('vider').hidden=st.dep.length===0;
+    $('totalDa').textContent=st.dep.length?da(totDa)+' · '+parJour().length+' jour(s)':'';
+    var vide=st.dep.length===0;
+    $('vide').hidden=!vide;$('vider').hidden=vide;$('exporter').hidden=vide;$('exportTxt').hidden=true;
     $('vider').textContent='Vider la liste';$('vider').dataset.arm='';
   }
-
+  function texteExport(){
+    var L=['Dépenses Algérie — taux '+f(st.taux,2).replace(/,00$/,'')+' DA/€',''],tot=0,totDa=0;
+    parJour().slice().reverse().forEach(function(g){var sEu=0,sDa=0;
+      L.push(nomJour(g.k).toUpperCase());
+      g.items.slice().reverse().forEach(function(x){sEu+=x.d.eu;sDa+=x.d.da;
+        L.push('  '+(x.d.l||'Dépense')+' : '+da(x.d.da)+' = '+eur(x.d.eu))});
+      L.push('  Total du jour : '+da(sDa)+' = '+eur(sEu),'');tot+=sEu;totDa+=sDa});
+    L.push('TOTAL SÉJOUR : '+da(totDa)+' = '+eur(tot));
+    return L.join('\n').replace(/\u202f|\u00a0/g,' ')}
   ['taux','tauxOff','montant'].forEach(function(id){$(id).addEventListener('input',function(){calculer(false)})});
   $('montant').addEventListener('keydown',function(e){if(e.key==='Enter'){calculer(true);this.blur()}});
   $('convertir').onclick=function(){calculer(true);$('montant').blur()};
@@ -219,9 +253,15 @@ li button{background:none;color:var(--doux);font-size:1.1rem;padding:4px 6px}
     if(m>0)$('montant').value=u==='ct'?Math.round(m*100):Math.round(m/100);
     st.unite=u;store.set('unite',u);rendreSens();calculer(false)}
   $('ajouter').onclick=function(){if(!dernier)return;
-    st.dep.push({da:dernier.da,eu:dernier.eu,l:$('libelle').value.trim(),t:Date.now()});
+    var j=$('jourDep').value||cleJour(Date.now()),p=j.split('-'),now=new Date();
+    var t=j===cleJour(now)?now.getTime():new Date(+p[0],p[1]-1,+p[2],12).getTime();
+    st.dep.push({da:dernier.da,eu:dernier.eu,l:$('libelle').value.trim(),t:t,j:j});
     store.set('dep',st.dep);$('libelle').value='';rendreDep();
     var b=this;b.textContent='✓ Ajouté';setTimeout(function(){b.textContent='+ Ajouter aux dépenses du séjour'},1200)};
+  $('exporter').onclick=function(){var txt=texteExport(),ta=$('exportTxt');
+    if(navigator.share){navigator.share({title:'Dépenses Algérie',text:txt}).catch(function(){});return}
+    ta.value=txt;ta.hidden=false;
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){$('exporter').textContent='✓ Copié';setTimeout(function(){$('exporter').textContent='Exporter'},1500)},function(){ta.select()})}else{ta.select()}};
   $('vider').onclick=function(){var b=this;
     if(b.dataset.arm){st.dep=[];store.set('dep',st.dep);rendreDep();return}
     b.dataset.arm='1';b.textContent='Toucher à nouveau pour confirmer';
